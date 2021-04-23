@@ -1,0 +1,112 @@
+#!/usr/bin/env bash
+set -euo pipefail
+IFS=$'\n\t'
+
+# THIS IS A WORK IN PROGRESS
+
+# shellcheck source=/dev/null
+source ./mergerfs_mount.env
+
+# Cleanup Function
+cleanup() {
+    local -ri EXIT_CODE=$?
+
+    if [[ ${EXIT_CODE} -ne 0 ]]; then
+        echo "script did not finish running successfully."
+    fi
+
+    echo "Exiting."
+
+    exit ${EXIT_CODE}
+    trap - ERR EXIT SIGABRT SIGALRM SIGHUP SIGINT SIGQUIT SIGTERM
+}
+trap 'cleanup' ERR EXIT SIGABRT SIGALRM SIGHUP SIGINT SIGQUIT SIGTERM
+
+mergerfs_mount() {
+    local INSTANCE=${1:-}
+
+    #Default arguments for mergerfs mount. Can be overridden in the environment file
+    local What="/mnt/local/disk.*=RW:/mnt/network/share.*=RW:/mnt/remote/rclone.*=NC"
+    local Where="/mnt/merged"
+    local Options="category.create=mspmfs,minfreespace=0,allow_other,dropcacheonclose=true,security_capability=false,xattr=nosys,statfs_ignore=ro,use_ino,async_read=false,cache.files=auto-full"
+
+    #Overwrite default environment settings with settings from the file if present
+    # shellcheck source=/dev/null
+    source "${INSTANCE_FOLDER%%/}/${INSTANCE}.env"
+
+    #Check that mergerfs is installed
+    command -v mergerfs > /dev/null 2>&1
+
+    #Check the mount directory
+    test -d "${Where%%/}"
+    test -w "${Where%%/}"
+    test -z "$(ls -A "${Where%%/}")"
+
+    #Mount mergerfs
+    mergerfs \
+        "${What}" \
+        "${Where}" \
+        -o "${Options}" \
+        &
+
+    echo "Successfully mounted ${Where%%/}"
+    echo
+}
+
+main() {
+    if ! command -v mergerfs > /dev/null 2>&1; then
+        echo "mergerfs is not installed. Installing now."
+        mkdir -p /tmp/mergerfs
+        docker run -v /tmp/mergerfs:/build --rm trapexit/mergerfs-static-build
+        mv /tmp/mergerfs/mergerfs /bin
+
+        echo "sleeping for 5 seconds."
+        sleep 5
+
+        if ! command -v mergerfs > /dev/null 2>&1; then
+            echo "mergerfs installation failed."
+            exit 1
+        fi
+        exit 1
+    fi
+
+    while IFS= read -r line; do
+        local INSTANCE=${line}
+
+        if [[ ! -f "${INSTANCE_FOLDER%%/}/${INSTANCE}.env" ]]; then
+            echo "'What' must be set in ${INSTANCE_FOLDER%%/}/${INSTANCE}.env"
+            echo "'Where' must be set in ${INSTANCE_FOLDER%%/}/${INSTANCE}.env"
+            echo "'Options' must be set in ${INSTANCE_FOLDER%%/}/${INSTANCE}.env"
+            echo "${line} will not be mounted."
+            echo
+            continue
+        fi
+
+        # shellcheck source=/dev/null
+        source "${INSTANCE_FOLDER%%/}/${INSTANCE}.env"
+
+        if [[ -z "${What}" ]]; then
+            echo "'What' must be set in ${INSTANCE_FOLDER%%/}/${INSTANCE}.env"
+            echo "${line} will not be mounted."
+            echo
+            continue
+        fi
+        if [[ ! "${Where%%/}" =~ ^/.* ]]; then
+            echo "'Where' must be set in ${INSTANCE_FOLDER%%/}/${INSTANCE}.env"
+            echo "${line} will not be mounted."
+            echo
+            continue
+        fi
+        if [[ -z "${Options}" ]]; then
+            echo "'Options' must be set in ${INSTANCE_FOLDER%%/}/${INSTANCE}.env"
+            echo "${Options} will not be mounted."
+            echo
+            continue
+        fi
+
+        mkdir -p "${Where%%/}"
+
+        mmergerfs_mount "${INSTANCE}"
+    done < <(ls ${INSTANCE_FOLDER%%/}/*.env)
+    }
+main
