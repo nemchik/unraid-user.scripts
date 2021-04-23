@@ -1,0 +1,98 @@
+#!/usr/bin/env bash
+set -euo pipefail
+IFS=$'\n\t'
+
+# THIS IS A WORK IN PROGRESS
+
+# shellcheck source=/dev/null
+source ./mergerfs_umount.env
+
+# Cleanup Function
+cleanup() {
+    local -ri EXIT_CODE=$?
+
+    if [[ ${EXIT_CODE} -ne 0 ]]; then
+        echo "script did not finish running successfully."
+    fi
+
+    echo "Exiting."
+
+    exit ${EXIT_CODE}
+    trap - ERR EXIT SIGABRT SIGALRM SIGHUP SIGINT SIGQUIT SIGTERM
+}
+trap 'cleanup' ERR EXIT SIGABRT SIGALRM SIGHUP SIGINT SIGQUIT SIGTERM
+
+mergerfs_umount() {
+    local INSTANCE=${1:-}
+
+    #Default arguments for mergerfs umount. Can be overridden in the environment file
+    local Where="/mnt/merged"
+
+    #Overwrite default environment settings with settings from the file if present
+    # shellcheck source=/dev/null
+    source "${INSTANCE_FOLDER%%/}/${INSTANCE}.env"
+
+    #UMount mergerfs
+    fusermount -u "${Where%%/}" &
+
+    echo "Successfully umounted ${Where%%/}"
+    echo
+}
+
+main() {
+    if ! command -v mergerfs > /dev/null 2>&1; then
+        echo "mergerfs is not installed. Installing now."
+        mkdir -p /tmp/mergerfs
+        docker run -v /tmp/mergerfs:/build --rm trapexit/mergerfs-static-build
+        mv /tmp/mergerfs/mergerfs /bin
+
+        echo "sleeping for 5 seconds."
+        sleep 5
+
+        if ! command -v mergerfs > /dev/null 2>&1; then
+            echo "mergerfs installation failed."
+            exit 1
+        fi
+        exit 1
+    fi
+
+    while IFS= read -r line; do
+        local INSTANCE=${line}
+
+        if [[ ! -f "${INSTANCE_FOLDER%%/}/${INSTANCE}.env" ]]; then
+            echo "'What' must be set in ${INSTANCE_FOLDER%%/}/${INSTANCE}.env"
+            echo "'Where' must be set in ${INSTANCE_FOLDER%%/}/${INSTANCE}.env"
+            echo "'Options' must be set in ${INSTANCE_FOLDER%%/}/${INSTANCE}.env"
+            echo "${line} will not be umounted."
+            echo
+            continue
+        fi
+
+        # shellcheck source=/dev/null
+        source "${INSTANCE_FOLDER%%/}/${INSTANCE}.env"
+
+        if [[ -z "${What}" ]]; then
+            echo "'What' must be set in ${INSTANCE_FOLDER%%/}/${INSTANCE}.env"
+            echo "${line} will not be umounted."
+            echo
+            continue
+        fi
+        if [[ ! "${Where%%/}" =~ ^/.* ]]; then
+            echo "'Where' must be set in ${INSTANCE_FOLDER%%/}/${INSTANCE}.env"
+            echo "${line} will not be umounted."
+            echo
+            continue
+        fi
+        if [[ -z "${Options}" ]]; then
+            echo "'Options' must be set in ${INSTANCE_FOLDER%%/}/${INSTANCE}.env"
+            echo "${Options} will not be umounted."
+            echo
+            continue
+        fi
+
+        mkdir -p "${Where%%/}"
+
+        mmergerfs_umount "${INSTANCE}"
+    done < <(ls ${INSTANCE_FOLDER%%/}/*.env)
+    }
+main
