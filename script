@@ -1,0 +1,87 @@
+#!/usr/bin/env bash
+set -euo pipefail
+IFS=$'\n\t'
+
+# THIS IS A WORK IN PROGRESS
+
+# shellcheck source=/dev/null
+source ./rclone_umount.env
+
+# Cleanup Function
+cleanup() {
+    local -ri EXIT_CODE=$?
+
+    if [[ ${EXIT_CODE} -ne 0 ]]; then
+        echo "script did not finish running successfully."
+    fi
+
+    echo "Exiting."
+
+    exit ${EXIT_CODE}
+    trap - ERR EXIT SIGABRT SIGALRM SIGHUP SIGINT SIGQUIT SIGTERM
+}
+trap 'cleanup' ERR EXIT SIGABRT SIGALRM SIGHUP SIGINT SIGQUIT SIGTERM
+
+rclone_umount() {
+    local INSTANCE=${1:-}
+
+    #Default arguments for rclone umount. Can be overridden in the environment file
+    local RCLONE_LOCAL_PATH="/mnt/main/mounts/remote/rclone.${INSTANCE}"
+
+    #Overwrite default environment settings with settings from the file if present
+    # shellcheck source=/dev/null
+    source "${INSTANCE_FOLDER%%/}/${INSTANCE}.env"
+
+    #UMount rclone
+    fusermount -u "${RCLONE_LOCAL_PATH%%/}" &
+
+    echo "Successfully umounted ${RCLONE_LOCAL_PATH%%/}"
+    echo
+}
+
+main() {
+    if ! command -v rclone > /dev/null 2>&1; then
+        echo "rclone is not installed."
+        exit 1
+    fi
+    if [[ $(rclone listremotes | wc -l) -lt 1 ]]; then
+        echo "rclone is not configured."
+        exit 1
+    fi
+
+    while IFS= read -r line; do
+        local INSTANCE=${line%%:}
+
+        if [[ ! -f "${INSTANCE_FOLDER%%/}/${INSTANCE}.env" ]]; then
+            echo "RCLONE_LOCAL_PATH must be set in ${INSTANCE_FOLDER%%/}/${INSTANCE}.env"
+            echo "RCLONE_RC_ADDR must be set in ${INSTANCE_FOLDER%%/}/${INSTANCE}.env"
+            echo "Each remote requires a different path and port."
+            echo "${line} will not be umounted."
+            echo
+            continue
+        fi
+
+        # shellcheck source=/dev/null
+        source "${INSTANCE_FOLDER%%/}/${INSTANCE}.env"
+
+        if [[ ! "${RCLONE_LOCAL_PATH%%/}" =~ ^/.* ]]; then
+            echo "RCLONE_LOCAL_PATH must be set in ${INSTANCE_FOLDER%%/}/${INSTANCE}.env"
+            echo "Each remote requires a different path."
+            echo "${line} will not be umounted."
+            echo
+            continue
+        fi
+        if [[ ! "${RCLONE_RC_ADDR}" =~ ^[a-zA-Z0-9_\.\-]+:[0-9]{1,5}$ ]]; then
+            echo "RCLONE_RC_ADDR must be set in ${INSTANCE_FOLDER%%/}/${INSTANCE}.env"
+            echo "Each remote requires a different port."
+            echo "${line} will not be umounted."
+            echo
+            continue
+        fi
+
+        mkdir -p "${RCLONE_LOCAL_PATH%%/}"
+
+        rclone_umount "${INSTANCE}"
+    done < <(rclone listremotes)
+}
+main
