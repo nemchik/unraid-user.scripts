@@ -1,0 +1,49 @@
+#!/usr/bin/env bash
+set -euo pipefail
+IFS=$'\n\t'
+
+# THIS IS A WORK IN PROGRESS
+
+touch ./preferences.env
+# shellcheck source=/dev/null
+source ./preferences.env
+
+# Cleanup Function
+cleanup() {
+    local -ri EXIT_CODE=$?
+
+    if [[ ${EXIT_CODE} -ne 0 ]]; then
+        echo "script did not finish running successfully."
+    fi
+
+    echo "Exiting."
+
+    exit ${EXIT_CODE}
+    trap - ERR EXIT SIGABRT SIGALRM SIGHUP SIGINT SIGQUIT SIGTERM
+}
+trap 'cleanup' ERR EXIT SIGABRT SIGALRM SIGHUP SIGINT SIGQUIT SIGTERM
+
+# Log Functions
+log() { echo -e "<span class=''>$(date +"%F %T") [LOG] $*</span>"; }
+login() { echo -e "<span class='login'>$(date +"%F %T") [LOGIN] $*</span>"; }
+array() { echo -e "<span class='array'>$(date +"%F %T") [ARRAY] $*</span>"; }
+system() { echo -e "<span class='system'>$(date +"%F %T") [SYSTEM] $*</span>"; }
+warn() { echo -e "<span class='warn'>$(date +"%F %T") [WARN] $*</span>"; }
+error() { echo -e "<span class='error'>$(date +"%F %T") [ERROR] $*</span>"; }
+
+template() {
+    local PARAMETER=${1:-}
+
+    echo "${PARAMETER}"
+    echo
+}
+
+main() {
+    log "log test"
+    login "login test"
+    array "array test"
+    system "system test"
+    warn "warn test"
+    error "error test"
+}
+main
