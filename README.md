@@ -9,15 +9,14 @@ User Scripts require the [[PLUGIN] CA USER SCRIPTS](https://forums.unraid.net/to
 Install this user script with the following command:
 
 ```shell
-SCRIPT_NAME=rclone_umount && git clone --single-branch --branch "${SCRIPT_NAME}" https://github.com/nemchik/unraid-user.scripts.git /boot/config/plugins/user.scripts/scripts/"${SCRIPT_NAME}"
+REPO="https://github.com/nemchik/unraid-user.scripts" && BRANCH="rclone_umount" && git clone --single-branch --branch "${BRANCH}" "${REPO%/}".git /boot/config/plugins/user.scripts/scripts/"${BRANCH}"
 ```
 
 ### Update
 
-**WARNING:** This will reset any changes you have made to the script! Settings for using the script should be kept in the `rclone_umount.env`
-
-Update this user script with the following command:
+The script may include an update check which will provide specific instructions. As long as you have not modified the files included in the repo you can update with the following command:
 
 ```shell
-SCRIPT_NAME=rclone_umount && git -C /boot/config/plugins/user.scripts/scripts/"${SCRIPT_NAME}" fetch origin "${SCRIPT_NAME}" && git -C /boot/config/plugins/user.scripts/scripts/"${SCRIPT_NAME}" reset --hard origin "${SCRIPT_NAME}"
+BRANCH="rclone_umount" && git -C /boot/config/plugins/user.scripts/scripts/"${BRANCH}" pull"
 ```
+
