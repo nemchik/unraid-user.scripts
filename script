@@ -67,7 +67,7 @@ rclone_umount() {
     local RCLONE_LOCAL_PATH="/mnt/main/mounts/remote/rclone.${INSTANCE}"
 
     #Overwrite default environment settings with settings from the file if present
-    export "$(grep -v '^#' "${INSTANCE_FOLDER%%/}/${INSTANCE}.env" | xargs -d '\n')"
+    local "$(grep -v '^#' "${INSTANCE_FOLDER%%/}/${INSTANCE}.env" | xargs -d '\n')"
 
     #UMount rclone
     fusermount -u "${RCLONE_LOCAL_PATH%%/}" &
@@ -99,7 +99,7 @@ main() {
             continue
         fi
 
-        export "$(grep -v '^#' "${INSTANCE_FOLDER%%/}/${INSTANCE}.env" | xargs -d '\n')"
+        local "$(grep -v '^#' "${INSTANCE_FOLDER%%/}/${INSTANCE}.env" | xargs -d '\n')"
 
         if [[ ! "${RCLONE_LOCAL_PATH%%/}" =~ ^/.* ]]; then
             warn "RCLONE_LOCAL_PATH must be set in ${INSTANCE_FOLDER%%/}/${INSTANCE}.env"
