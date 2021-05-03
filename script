@@ -2,11 +2,10 @@
 set -euo pipefail
 IFS=$'\n\t'
 
-# THIS IS A WORK IN PROGRESS
-
-touch ./preferences.env
-# shellcheck source=/dev/null
-source ./preferences.env
+SCRIPTPATH=/boot/config/plugins/user.scripts/scripts
+SCRIPTNAME="$(basename "$(cd -- "$(dirname "$0")" > /dev/null 2>&1;pwd -P)")"
+touch "${SCRIPTPATH}/${SCRIPTNAME}/preferences.env"
+export "$(grep -v '^#' "${SCRIPTPATH}/${SCRIPTNAME}/preferences.env" | xargs -d '\n')"
 
 # Cleanup Function
 cleanup() {
