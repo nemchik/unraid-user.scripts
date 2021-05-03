@@ -52,7 +52,7 @@ update_check() {
         error "Your local files have changes that may conflict with performing an update. Please resolve this manually."
     elif [ "${REMOTE_DIFF}" != "" ]; then
         warn "New changes are available for ${BRANCH} script."
-        warn "Review the changes: <a href='${REPO%/}/compare/${LOCAL_COMMIT}...${BRANCH}'>here</a>"
+        warn "Review the changes: <a href='${REPO%/}/compare/${LOCAL_COMMIT}...${BRANCH}' target='_blank'>here</a>"
         warn "Update using:"
         warn "git -C ${SCRIPTPATH}/${SCRIPTNAME} pull"
     else
