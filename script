@@ -68,8 +68,7 @@ mergerfs_umount() {
     local Where="/mnt/merged"
 
     #Overwrite default environment settings with settings from the file if present
-    # shellcheck source=/dev/null
-    source "${INSTANCE_FOLDER%%/}/${INSTANCE}.env"
+    export "$(grep -v '^#' "${INSTANCE_FOLDER%%/}/${INSTANCE}.env" | xargs -d '\n')"
 
     #UMount mergerfs
     fusermount -u "${Where%%/}" &
@@ -107,8 +106,7 @@ main() {
             continue
         fi
 
-        # shellcheck source=/dev/null
-        source "${INSTANCE_FOLDER%%/}/${INSTANCE}.env"
+        export "$(grep -v '^#' "${INSTANCE_FOLDER%%/}/${INSTANCE}.env" | xargs -d '\n')"
 
         if [[ -z "${What}" ]]; then
             warn "'What' must be set in ${INSTANCE_FOLDER%%/}/${INSTANCE}.env"
