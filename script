@@ -97,6 +97,7 @@ rclone_mount() {
 }
 
 main() {
+    update_check
     if ! command -v rclone > /dev/null 2>&1; then
         error "rclone is not installed."
         exit 1
