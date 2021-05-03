@@ -70,8 +70,7 @@ mergerfs_mount() {
     local Options="category.create=mspmfs,minfreespace=0,allow_other,dropcacheonclose=true,security_capability=false,xattr=nosys,statfs_ignore=ro,use_ino,async_read=false,cache.files=auto-full"
 
     #Overwrite default environment settings with settings from the file if present
-    # shellcheck source=/dev/null
-    source "${INSTANCE_FOLDER%%/}/${INSTANCE}.env"
+    export "$(grep -v '^#' "${INSTANCE_FOLDER%%/}/${INSTANCE}.env" | xargs -d '\n')"
 
     #Check that mergerfs is installed
     command -v mergerfs > /dev/null 2>&1
@@ -121,8 +120,7 @@ main() {
             continue
         fi
 
-        # shellcheck source=/dev/null
-        source "${INSTANCE_FOLDER%%/}/${INSTANCE}.env"
+        export "$(grep -v '^#' "${INSTANCE_FOLDER%%/}/${INSTANCE}.env" | xargs -d '\n')"
 
         if [[ -z "${What}" ]]; then
             warn "'What' must be set in ${INSTANCE_FOLDER%%/}/${INSTANCE}.env"
