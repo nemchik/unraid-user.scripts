@@ -71,8 +71,7 @@ rclone_mount() {
     local RCLONE_REMOTE_PATH="/"
 
     #Overwrite default environment settings with settings from the file if present
-    # shellcheck source=/dev/null
-    source "${INSTANCE_FOLDER%%/}/${INSTANCE}.env"
+    export "$(grep -v '^#' "${INSTANCE_FOLDER%%/}/${INSTANCE}.env" | xargs -d '\n')"
 
     #Check that rclone is installed
     command -v rclone > /dev/null 2>&1
@@ -119,8 +118,7 @@ main() {
             continue
         fi
 
-        # shellcheck source=/dev/null
-        source "${INSTANCE_FOLDER%%/}/${INSTANCE}.env"
+        export "$(grep -v '^#' "${INSTANCE_FOLDER%%/}/${INSTANCE}.env" | xargs -d '\n')"
 
         if [[ ! "${RCLONE_LOCAL_PATH%%/}" =~ ^/.* ]]; then
             warn "RCLONE_LOCAL_PATH must be set in ${INSTANCE_FOLDER%%/}/${INSTANCE}.env"
